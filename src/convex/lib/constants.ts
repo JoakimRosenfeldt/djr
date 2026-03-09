@@ -1,0 +1,6 @@
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const ADMIN_LINK_TOKEN_TTL_MS = 30 * DAY_MS;
+export const ADMIN_SESSION_TTL_MS = 14 * DAY_MS;
+export const SOUNDCLOUD_SEARCH_CACHE_TTL_MS = 2 * 60 * 1000;
+export const SOUNDCLOUD_TOKEN_REFRESH_BUFFER_MS = 60 * 1000;
