@@ -4,7 +4,7 @@
 	import { api } from '$lib/convexApi';
 	import type { PageData } from './$types';
 	import { ensureGuestId } from '$lib/browser/storage';
-	import { formatDuration, formatSourceLabel } from '$lib/format';
+	import { formatDuration, formatSourceLabel, truncateText } from '$lib/format';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import {
 		ArrowBigDownDash,
@@ -42,6 +42,39 @@
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 	let actionError = $state('');
 
+	function syncSearchResultState() {
+		if (!roomQuery.data || searchResults.length === 0) {
+			return;
+		}
+
+		const activeTrackKeys = new Set(
+			roomQuery.data.activeRequests.map((request) => request.sourceTrackKey)
+		);
+		const playedTrackKeys = new Set(
+			roomQuery.data.playedRequests.map((request) => request.sourceTrackKey)
+		);
+		let hasChanges = false;
+		const nextResults = searchResults.map((result) => {
+			const alreadyQueued = activeTrackKeys.has(result.sourceTrackKey);
+			const alreadyPlayed = playedTrackKeys.has(result.sourceTrackKey);
+
+			if (result.alreadyQueued !== alreadyQueued || result.alreadyPlayed !== alreadyPlayed) {
+				hasChanges = true;
+				return {
+					...result,
+					alreadyQueued,
+					alreadyPlayed
+				};
+			}
+
+			return result;
+		});
+
+		if (hasChanges) {
+			searchResults = nextResults;
+		}
+	}
+
 	const roomQuery = useQuery(
 		api.rooms.getPublicRoom,
 		() => ({
@@ -58,6 +91,12 @@
 		if (guestId === null && initialGuestId) {
 			guestId = initialGuestId;
 		}
+	});
+
+	$effect(() => {
+		roomQuery.data;
+		searchResults.length;
+		syncSearchResultState();
 	});
 
 	onMount(() => {
@@ -115,6 +154,10 @@
 			behavior: 'smooth',
 			block: 'center'
 		});
+	}
+
+	function formatSearchResultTitle(title: string) {
+		return truncateText(title, 42);
 	}
 
 	async function addTrack(track: (typeof searchResults)[number]) {
@@ -270,61 +313,189 @@
 						{:else}
 							<div class="space-y-3">
 								{#each searchResults as result}
-									<article class="queue-card p-3 sm:p-4">
-										<div class="flex items-start gap-3 text-left sm:gap-4">
+									{@const activeRequest = roomQuery.data?.activeRequests.find(
+										(request) => request.sourceTrackKey === result.sourceTrackKey
+									)}
+									<article class="queue-card p-3">
+										<div class="flex items-start gap-3 text-left">
 											<img
-												class="h-14 w-14 rounded-2xl object-cover sm:h-16 sm:w-16"
+												class="h-12 w-12 rounded-xl object-cover sm:h-14 sm:w-14"
 												src={result.artworkUrl ??
 													'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=300&q=80'}
 												alt=""
 											/>
 											<div class="min-w-0 flex-1">
-												<div class="flex items-start justify-between gap-3">
-													<div class="min-w-0">
-														<h3 class="truncate text-base font-semibold text-[var(--color-paper)]">
-															{result.title}
-														</h3>
-														<p class="truncate text-sm text-[var(--color-muted)]">
-															{result.artistName}
-														</p>
-													</div>
-													<div class="flex flex-col items-end gap-2">
-														<span class="pill text-xs">{formatDuration(result.durationMs)}</span>
-														<span class="pill text-[10px] tracking-[0.18em] uppercase">
-															{formatSourceLabel(result.source)}
+												<div class="min-w-0">
+													<h3
+														class="block max-w-full overflow-hidden text-[15px] font-semibold text-ellipsis whitespace-nowrap text-[var(--color-paper)]"
+														title={result.title}
+													>
+														{formatSearchResultTitle(result.title)}
+													</h3>
+													<p class="truncate text-sm leading-tight text-[var(--color-muted)]">
+														{result.artistName}
+													</p>
+												</div>
+												<div class="mt-2 flex flex-wrap items-center gap-1.5">
+													<span class="pill px-3 py-1 text-[11px]">
+														{formatDuration(result.durationMs)}
+													</span>
+													<span class="pill px-3 py-1 text-[10px] tracking-[0.18em] uppercase">
+														{formatSourceLabel(result.source)}
+													</span>
+													{#if result.alreadyPlayed}
+														<span
+															class="pill border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] tracking-[0.18em] text-amber-100 uppercase"
+														>
+															Played
 														</span>
+													{:else if result.alreadyQueued}
+														<span
+															class="pill border-white/15 bg-white/8 px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--color-paper)] uppercase"
+														>
+															In queue
+														</span>
+													{/if}
+												</div>
+												{#if activeRequest}
+													<div
+														class="hidden sm:mt-2 sm:grid sm:w-full sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-1.5"
+													>
+														<button
+															class={activeRequest.viewerVote === 1
+																? 'vote-button vote-button-active min-w-0 justify-center'
+																: 'vote-button min-w-0 justify-center'}
+															type="button"
+															onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, 1)}
+														>
+															<ArrowBigUpDash size={18} />
+															<span class="truncate">Upvote</span>
+														</button>
+														<button
+															class={activeRequest.viewerVote === -1
+																? 'vote-button vote-button-active min-w-0 justify-center'
+																: 'vote-button min-w-0 justify-center'}
+															type="button"
+															onclick={() =>
+																setVote(activeRequest.id, activeRequest.viewerVote, -1)}
+														>
+															<ArrowBigDownDash size={18} />
+															<span class="truncate">Downvote</span>
+														</button>
+														<button
+															class="btn-secondary w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+															type="button"
+															onclick={() => jumpToRequest(activeRequest.id)}
+														>
+															<span class="truncate">Show</span>
+														</button>
+														<a
+															class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+															href={result.permalinkUrl}
+															target="_blank"
+															rel="noreferrer"
+														>
+															<span class="truncate">Open</span>
+														</a>
 													</div>
-												</div>
-												<div class="mt-3 flex flex-wrap items-center gap-2">
-													<button
-														class={result.alreadyPlayed
-															? 'btn-secondary opacity-60'
-															: result.alreadyQueued
-																? 'btn-secondary'
-																: 'btn-primary'}
-														type="button"
-														disabled={result.alreadyPlayed}
-														onclick={() => addTrack(result)}
+												{:else}
+													<div
+														class="hidden sm:mt-2 sm:grid sm:w-full sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-1.5"
 													>
-														{#if result.alreadyPlayed}
-															Played already
-														{:else if result.alreadyQueued}
-															Show in queue
-														{:else}
-															Request track
-														{/if}
-													</button>
-													<a
-														class="btn-ghost"
-														href={result.permalinkUrl}
-														target="_blank"
-														rel="noreferrer"
-													>
-														Open on {formatSourceLabel(result.source)}
-													</a>
-												</div>
+														<button
+															class={result.alreadyPlayed
+																? 'btn-secondary min-w-0 opacity-60'
+																: 'btn-primary w-full min-w-0 justify-center'}
+															type="button"
+															disabled={result.alreadyPlayed}
+															onclick={() => addTrack(result)}
+														>
+															{#if result.alreadyPlayed}
+																<span class="truncate">Played already</span>
+															{:else}
+																<span class="truncate">Request track</span>
+															{/if}
+														</button>
+														<a
+															class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+															href={result.permalinkUrl}
+															target="_blank"
+															rel="noreferrer"
+														>
+															<span class="truncate">Open</span>
+														</a>
+													</div>
+												{/if}
 											</div>
 										</div>
+										{#if activeRequest}
+											<div
+												class="mt-2 grid w-full min-w-0 grid-cols-2 items-center gap-1.5 sm:hidden"
+											>
+												<button
+													class={activeRequest.viewerVote === 1
+														? 'vote-button vote-button-active min-w-0 justify-center'
+														: 'vote-button min-w-0 justify-center'}
+													type="button"
+													onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, 1)}
+												>
+													<ArrowBigUpDash size={18} />
+													<span class="truncate">Upvote</span>
+												</button>
+												<button
+													class={activeRequest.viewerVote === -1
+														? 'vote-button vote-button-active min-w-0 justify-center'
+														: 'vote-button min-w-0 justify-center'}
+													type="button"
+													onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, -1)}
+												>
+													<ArrowBigDownDash size={18} />
+													<span class="truncate">Downvote</span>
+												</button>
+												<button
+													class="btn-secondary w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+													type="button"
+													onclick={() => jumpToRequest(activeRequest.id)}
+												>
+													<span class="truncate">Show</span>
+												</button>
+												<a
+													class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+													href={result.permalinkUrl}
+													target="_blank"
+													rel="noreferrer"
+												>
+													<span class="truncate">Open</span>
+												</a>
+											</div>
+										{:else}
+											<div
+												class="mt-2 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:hidden"
+											>
+												<button
+													class={result.alreadyPlayed
+														? 'btn-secondary min-w-0 opacity-60'
+														: 'btn-primary w-full min-w-0 justify-center'}
+													type="button"
+													disabled={result.alreadyPlayed}
+													onclick={() => addTrack(result)}
+												>
+													{#if result.alreadyPlayed}
+														<span class="truncate">Played already</span>
+													{:else}
+														<span class="truncate">Request track</span>
+													{/if}
+												</button>
+												<a
+													class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+													href={result.permalinkUrl}
+													target="_blank"
+													rel="noreferrer"
+												>
+													<span class="truncate">Open</span>
+												</a>
+											</div>
+										{/if}
 									</article>
 								{/each}
 							</div>
@@ -372,7 +543,9 @@
 														</span>
 													</div>
 												</div>
-												<div class="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
+												<div
+													class="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2"
+												>
 													<button
 														class={request.viewerVote === 1
 															? 'vote-button vote-button-active justify-center'

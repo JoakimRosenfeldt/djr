@@ -94,11 +94,11 @@ function rankTrack(
 	let rankScore = 0;
 
 	if (track.alreadyQueued) {
-		rankScore += 140;
+		rankScore += 220;
 	}
 
 	if (track.alreadyPlayed) {
-		rankScore -= 140;
+		rankScore += 180;
 	}
 
 	if (normalizedTitle === query) {
@@ -141,8 +141,8 @@ function rankTrack(
 		}
 	}
 
-	if (track.source === 'soundcloud' && titleMatches + artistMatches > 0) {
-		rankScore += 2;
+	if (track.source === 'spotify') {
+		rankScore += 8;
 	}
 
 	return {
@@ -158,12 +158,23 @@ function sortRankedTracks(left: RankedSearchTrackResult, right: RankedSearchTrac
 		return scoreDelta;
 	}
 
+	const leftRequested = left.alreadyQueued || left.alreadyPlayed;
+	const rightRequested = right.alreadyQueued || right.alreadyPlayed;
+
+	if (leftRequested !== rightRequested) {
+		return leftRequested ? -1 : 1;
+	}
+
 	if (left.alreadyQueued !== right.alreadyQueued) {
 		return left.alreadyQueued ? -1 : 1;
 	}
 
 	if (left.alreadyPlayed !== right.alreadyPlayed) {
-		return left.alreadyPlayed ? 1 : -1;
+		return left.alreadyPlayed ? -1 : 1;
+	}
+
+	if (left.source !== right.source) {
+		return left.source === 'spotify' ? -1 : 1;
 	}
 
 	return left.originalIndex - right.originalIndex;
