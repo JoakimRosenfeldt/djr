@@ -1,8 +1,22 @@
 import { v } from 'convex/values';
-import { mutation } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import { mutation, type MutationCtx } from './_generated/server';
 import { requireAdminSession, requireRoomBySlug } from './lib/auth';
 import { recomputeRequestAggregates } from './lib/requests';
 import { trackSnapshotValidator } from './lib/validators';
+
+async function deleteRequestAndVotes(ctx: MutationCtx, requestId: Id<'requests'>) {
+	const votes = await ctx.db
+		.query('votes')
+		.withIndex('by_requestId_guestId', (query) => query.eq('requestId', requestId))
+		.collect();
+
+	for (const vote of votes) {
+		await ctx.db.delete(vote._id);
+	}
+
+	await ctx.db.delete(requestId);
+}
 
 export const addOrVote = mutation({
 	args: {
@@ -119,5 +133,93 @@ export const markPlayed = mutation({
 		});
 
 		return { success: true };
+	}
+});
+
+export const clearPlayed = mutation({
+	args: {
+		roomSlug: v.string(),
+		adminSessionToken: v.string()
+	},
+	handler: async (ctx, args) => {
+		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+		await requireAdminSession(ctx.db, room._id, args.adminSessionToken);
+
+		const playedRequests = await ctx.db
+			.query('requests')
+			.withIndex('by_roomId_status', (query) => query.eq('roomId', room._id).eq('status', 'played'))
+			.collect();
+
+		for (const request of playedRequests) {
+			await deleteRequestAndVotes(ctx, request._id);
+		}
+
+		return {
+			success: true,
+			clearedCount: playedRequests.length
+		};
+	}
+});
+
+export const removePlayed = mutation({
+	args: {
+		requestId: v.id('requests'),
+		adminSessionToken: v.string()
+	},
+	handler: async (ctx, args) => {
+		const request = await ctx.db.get(args.requestId);
+
+		if (!request) {
+			throw new Error('That played song no longer exists.');
+		}
+
+		await requireAdminSession(ctx.db, request.roomId, args.adminSessionToken);
+
+		if (request.status !== 'played') {
+			throw new Error('Only played songs can be removed from the archive.');
+		}
+
+		await deleteRequestAndVotes(ctx, request._id);
+
+		return {
+			success: true
+		};
+	}
+});
+
+export const resetRoom = mutation({
+	args: {
+		roomSlug: v.string(),
+		adminSessionToken: v.string()
+	},
+	handler: async (ctx, args) => {
+		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+		await requireAdminSession(ctx.db, room._id, args.adminSessionToken);
+
+		const [activeRequests, playedRequests] = await Promise.all([
+			ctx.db
+				.query('requests')
+				.withIndex('by_roomId_status', (query) =>
+					query.eq('roomId', room._id).eq('status', 'active')
+				)
+				.collect(),
+			ctx.db
+				.query('requests')
+				.withIndex('by_roomId_status', (query) =>
+					query.eq('roomId', room._id).eq('status', 'played')
+				)
+				.collect()
+		]);
+
+		const requests = [...activeRequests, ...playedRequests];
+
+		for (const request of requests) {
+			await deleteRequestAndVotes(ctx, request._id);
+		}
+
+		return {
+			success: true,
+			clearedCount: requests.length
+		};
 	}
 });
