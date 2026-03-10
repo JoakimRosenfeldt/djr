@@ -4,6 +4,7 @@ import {
 	cachedSearchResultValidator,
 	nullableStringValidator,
 	providerValidator,
+	roomColorValidator,
 	requestStatusValidator,
 	roomStatusValidator
 } from './lib/validators';
@@ -13,6 +14,7 @@ export default defineSchema({
 		slug: v.string(),
 		eventName: v.string(),
 		djName: v.string(),
+		color: v.optional(roomColorValidator),
 		status: roomStatusValidator,
 		createdAt: v.number(),
 		closedAt: v.optional(v.number()),

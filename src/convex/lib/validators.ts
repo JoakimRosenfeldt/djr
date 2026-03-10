@@ -1,6 +1,12 @@
 import { v } from 'convex/values';
 
 export const roomStatusValidator = v.union(v.literal('active'), v.literal('closed'));
+export const roomColorValidator = v.union(
+	v.literal('purple'),
+	v.literal('sunset'),
+	v.literal('ocean'),
+	v.literal('lime')
+);
 export const requestStatusValidator = v.union(v.literal('active'), v.literal('played'));
 export const nullableStringValidator = v.union(v.string(), v.null());
 export const providerValidator = v.union(v.literal('soundcloud'), v.literal('spotify'));

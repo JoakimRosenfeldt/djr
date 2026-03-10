@@ -2,6 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/convexApi';
 	import { saveSetupPayload } from '$lib/browser/storage';
+	import {
+		DEFAULT_ROOM_COLOR,
+		getRoomColorOption,
+		type RoomColorId,
+		ROOM_COLOR_OPTIONS
+	} from '$lib/room-colors';
 	import { useConvexClient } from 'convex-svelte';
 	import { LoaderCircle, RadioTower, ShieldCheck, Sparkles } from 'lucide-svelte';
 
@@ -9,6 +15,7 @@
 
 	let djName = $state('');
 	let eventName = $state('');
+	let roomColor = $state<RoomColorId>(DEFAULT_ROOM_COLOR);
 	let errorMessage = $state('');
 	let isSubmitting = $state(false);
 
@@ -21,13 +28,15 @@
 			const payload = await client.mutation(api.rooms.createRoom, {
 				djName: djName.trim(),
 				eventName: eventName.trim(),
+				color: roomColor,
 				origin: window.location.origin
 			});
 
 			saveSetupPayload(payload.roomSlug, {
 				guestUrl: payload.guestUrl,
 				adminUrl: payload.adminUrl,
-				pin: payload.pin
+				pin: payload.pin,
+				color: roomColor
 			});
 
 			await goto(`/setup/${payload.roomSlug}`);
@@ -132,6 +141,43 @@
 								required
 							/>
 						</label>
+
+						<fieldset class="field-shell">
+							<legend>Room color</legend>
+							<div class="grid gap-3 sm:grid-cols-2">
+								{#each ROOM_COLOR_OPTIONS as option}
+									<label class:color-option-selected={roomColor === option.id} class="color-option">
+										<input
+											class="sr-only"
+											type="radio"
+											name="roomColor"
+											value={option.id}
+											bind:group={roomColor}
+										/>
+										<span class="color-swatch" style={`background: ${option.swatch}`}></span>
+										<span class="min-w-0">
+											<span class="block text-sm font-semibold text-[var(--color-paper)]">
+												{option.label}
+												{#if option.id === DEFAULT_ROOM_COLOR}
+													<span class="ml-1 text-xs text-[var(--color-accent-soft)]">
+														Default
+													</span>
+												{/if}
+											</span>
+											<span class="mt-1 block text-xs leading-5 text-[var(--color-muted)]">
+												{option.description}
+											</span>
+										</span>
+									</label>
+								{/each}
+							</div>
+							<p class="text-xs leading-5 text-[var(--color-muted)]">
+								Selected theme:
+								<span class="font-semibold text-[var(--color-paper)]">
+									{getRoomColorOption(roomColor).label}
+								</span>
+							</p>
+						</fieldset>
 
 						{#if errorMessage}
 							<p

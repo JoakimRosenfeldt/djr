@@ -1,8 +1,10 @@
 import { v } from 'convex/values';
+import { DEFAULT_ROOM_COLOR } from '../lib/room-colors';
 import { mutation, query } from './_generated/server';
 import { ADMIN_LINK_TOKEN_TTL_MS } from './lib/constants';
 import { getRoomBySlug, requireAdminSession, requireRoomBySlug } from './lib/auth';
 import { createPin, createToken, hashString, slugify, trimOrigin } from './lib/helpers';
+import { roomColorValidator } from './lib/validators';
 import {
 	getViewerVotes,
 	listRequestsByStatus,
@@ -15,6 +17,7 @@ export const createRoom = mutation({
 	args: {
 		djName: v.string(),
 		eventName: v.string(),
+		color: v.optional(roomColorValidator),
 		origin: v.string()
 	},
 	handler: async (ctx, args) => {
@@ -32,6 +35,7 @@ export const createRoom = mutation({
 			slug,
 			eventName: args.eventName.trim(),
 			djName: args.djName.trim(),
+			color: args.color ?? DEFAULT_ROOM_COLOR,
 			status: 'active',
 			createdAt,
 			pinHash
@@ -76,6 +80,7 @@ export const getPublicRoom = query({
 				slug: room.slug,
 				eventName: room.eventName,
 				djName: room.djName,
+				color: room.color ?? DEFAULT_ROOM_COLOR,
 				status: room.status
 			},
 			activeRequests: activeRequests.map((request) =>
@@ -108,6 +113,7 @@ export const getAdminRoom = query({
 				slug: room.slug,
 				eventName: room.eventName,
 				djName: room.djName,
+				color: room.color ?? DEFAULT_ROOM_COLOR,
 				status: room.status
 			},
 			activeRequests: activeRequests.map(toAdminRequest),
