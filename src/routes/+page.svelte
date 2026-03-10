@@ -5,6 +5,7 @@
 	import {
 		DEFAULT_ROOM_COLOR,
 		getRoomColorOption,
+		getRoomThemeStyle,
 		type RoomColorId,
 		ROOM_COLOR_OPTIONS
 	} from '$lib/room-colors';
@@ -18,6 +19,7 @@
 	let roomColor = $state<RoomColorId>(DEFAULT_ROOM_COLOR);
 	let errorMessage = $state('');
 	let isSubmitting = $state(false);
+	const pageThemeStyle = $derived(getRoomThemeStyle(roomColor));
 
 	async function handleCreateRoom(event: SubmitEvent) {
 		event.preventDefault();
@@ -52,9 +54,7 @@
 	<title>DJR | Build a live request room</title>
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,120,74,0.28),_transparent_35%),radial-gradient(circle_at_80%_20%,_rgba(255,216,184,0.2),_transparent_25%),linear-gradient(180deg,_#140f0b_0%,_#090909_100%)]"
->
+<div class="min-h-screen" style={pageThemeStyle}>
 	<div
 		class="mx-auto flex min-h-screen max-w-7xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-12"
 	>
