@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import {
 	cachedSearchResultValidator,
 	nullableStringValidator,
+	providerCredentialsValidator,
 	providerValidator,
 	roomColorValidator,
 	requestStatusValidator,
@@ -15,6 +16,9 @@ export default defineSchema({
 		eventName: v.string(),
 		djName: v.string(),
 		color: v.optional(roomColorValidator),
+		enabledProviders: v.optional(v.array(providerValidator)),
+		soundcloudCredentials: v.optional(providerCredentialsValidator),
+		spotifyCredentials: v.optional(providerCredentialsValidator),
 		status: roomStatusValidator,
 		createdAt: v.number(),
 		closedAt: v.optional(v.number()),
@@ -73,19 +77,21 @@ export default defineSchema({
 		.index('by_roomId_guestId', ['roomId', 'guestId']),
 
 	providerTokens: defineTable({
+		roomId: v.optional(v.id('rooms')),
 		provider: providerValidator,
-		key: v.string(),
+		key: v.optional(v.string()),
 		accessToken: v.string(),
 		refreshToken: v.optional(nullableStringValidator),
 		expiresAt: v.number(),
 		updatedAt: v.number()
-	}).index('by_provider_key', ['provider', 'key']),
+	}).index('by_roomId_provider', ['roomId', 'provider']),
 
 	providerSearchCache: defineTable({
+		roomId: v.optional(v.id('rooms')),
 		provider: providerValidator,
 		normalizedQuery: v.string(),
 		results: v.array(cachedSearchResultValidator),
 		expiresAt: v.number(),
 		updatedAt: v.number()
-	}).index('by_provider_normalizedQuery', ['provider', 'normalizedQuery'])
+	}).index('by_roomId_provider_normalizedQuery', ['roomId', 'provider', 'normalizedQuery'])
 });

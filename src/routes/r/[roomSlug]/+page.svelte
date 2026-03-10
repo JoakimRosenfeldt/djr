@@ -43,6 +43,22 @@
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 	let actionError = $state('');
 
+	function formatProviderList(providers: Array<'soundcloud' | 'spotify'> | undefined) {
+		const labels = (providers ?? ['soundcloud', 'spotify']).map((provider) =>
+			formatSourceLabel(provider)
+		);
+
+		if (labels.length <= 1) {
+			return labels[0] ?? 'Music';
+		}
+
+		if (labels.length === 2) {
+			return `${labels[0]} + ${labels[1]}`;
+		}
+
+		return `${labels.slice(0, -1).join(', ')} + ${labels.at(-1)}`;
+	}
+
 	function syncSearchResultState() {
 		if (!roomQuery.data || searchResults.length === 0) {
 			return;
@@ -254,7 +270,9 @@
 			<div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
 				<section class="panel space-y-5">
 					<div class="space-y-2">
-						<p class="eyebrow">Search SoundCloud + Spotify</p>
+						<p class="eyebrow">
+							Search {formatProviderList(roomQuery.data?.room.enabledProviders)}
+						</p>
 						<label class="field-shell">
 							<span>Track or artist</span>
 							<div class="relative">

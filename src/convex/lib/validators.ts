@@ -10,6 +10,10 @@ export const roomColorValidator = v.union(
 export const requestStatusValidator = v.union(v.literal('active'), v.literal('played'));
 export const nullableStringValidator = v.union(v.string(), v.null());
 export const providerValidator = v.union(v.literal('soundcloud'), v.literal('spotify'));
+export const providerCredentialsValidator = v.object({
+	clientId: v.string(),
+	clientSecret: v.string()
+});
 
 export const trackSnapshotValidator = v.object({
 	source: providerValidator,

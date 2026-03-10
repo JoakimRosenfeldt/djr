@@ -164,6 +164,14 @@
 		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 25%, transparent);
 	}
 
+	.color-option-selected:hover {
+		border-color: color-mix(in srgb, var(--color-accent) 72%, white 14%);
+		background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent),
+			0 16px 40px rgba(255, 122, 69, 0.12);
+	}
+
 	.color-swatch {
 		@apply h-11 w-11 shrink-0 rounded-2xl;
 		box-shadow:

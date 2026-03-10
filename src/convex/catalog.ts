@@ -2,6 +2,7 @@
 
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { action, type ActionCtx } from './_generated/server';
 import { makeSourceTrackKey, normalizeQuery } from './lib/helpers';
 import { SOUNDCLOUD_TOKEN_REFRESH_BUFFER_MS } from './lib/constants';
@@ -22,6 +23,20 @@ type SearchTrack = {
 type SearchTrackResult = SearchTrack & {
 	alreadyQueued: boolean;
 	alreadyPlayed: boolean;
+};
+
+type ProviderCredentials = {
+	clientId: string;
+	clientSecret: string;
+};
+
+type RoomCatalogState = {
+	roomId: Id<'rooms'>;
+	enabledProviders: Provider[];
+	soundcloudCredentials: ProviderCredentials | null;
+	spotifyCredentials: ProviderCredentials | null;
+	activeTrackKeys: string[];
+	playedTrackKeys: string[];
 };
 
 type RankedSearchTrackResult = SearchTrackResult & {
@@ -229,8 +244,65 @@ function mapSpotifyTrack(track: RawSpotifyTrack): SearchTrack | null {
 	};
 }
 
-async function ensureSoundCloudAccessToken(ctx: ActionCtx) {
+function trimCredentials(credentials: ProviderCredentials | null | undefined) {
+	const clientId = credentials?.clientId?.trim();
+	const clientSecret = credentials?.clientSecret?.trim();
+
+	if (!clientId || !clientSecret) {
+		return null;
+	}
+
+	return {
+		clientId,
+		clientSecret
+	};
+}
+
+function getProviderCredentials(roomState: RoomCatalogState, provider: Provider): ProviderCredentials {
+	if (provider === 'soundcloud') {
+		const roomCredentials = trimCredentials(roomState.soundcloudCredentials);
+
+		if (roomCredentials) {
+			return roomCredentials;
+		}
+
+		const envCredentials = trimCredentials({
+			clientId: process.env.SOUNDCLOUD_CLIENT_ID ?? '',
+			clientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET ?? ''
+		});
+
+		if (envCredentials) {
+			return envCredentials;
+		}
+
+		throw new Error('SoundCloud credentials are not configured for this room.');
+	}
+
+	const roomCredentials = trimCredentials(roomState.spotifyCredentials);
+
+	if (roomCredentials) {
+		return roomCredentials;
+	}
+
+	const envCredentials = trimCredentials({
+		clientId: process.env.SPOTIFY_CLIENT_ID ?? '',
+		clientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? ''
+	});
+
+	if (envCredentials) {
+		return envCredentials;
+	}
+
+	throw new Error('Spotify credentials are not configured for this room.');
+}
+
+async function ensureSoundCloudAccessToken(
+	ctx: ActionCtx,
+	roomId: Id<'rooms'>,
+	credentials: ProviderCredentials
+) {
 	const cachedToken = await ctx.runQuery(internal.catalogStore.getTokenRecord, {
+		roomId,
 		provider: 'soundcloud'
 	});
 
@@ -238,17 +310,10 @@ async function ensureSoundCloudAccessToken(ctx: ActionCtx) {
 		return cachedToken.accessToken;
 	}
 
-	const clientId = process.env.SOUNDCLOUD_CLIENT_ID;
-	const clientSecret = process.env.SOUNDCLOUD_CLIENT_SECRET;
-
-	if (!clientId || !clientSecret) {
-		throw new Error('SoundCloud credentials are not configured in Convex.');
-	}
-
 	const body = new URLSearchParams({
 		grant_type: 'client_credentials',
-		client_id: clientId,
-		client_secret: clientSecret
+		client_id: credentials.clientId,
+		client_secret: credentials.clientSecret
 	});
 
 	const response = await fetch('https://api.soundcloud.com/oauth2/token', {
@@ -271,6 +336,7 @@ async function ensureSoundCloudAccessToken(ctx: ActionCtx) {
 	const expiresAt = Date.now() + Number(payload.expires_in ?? 3600) * 1000;
 
 	await ctx.runMutation(internal.catalogStore.storeToken, {
+		roomId,
 		provider: 'soundcloud',
 		accessToken: payload.access_token,
 		refreshToken: payload.refresh_token ?? null,
@@ -280,8 +346,13 @@ async function ensureSoundCloudAccessToken(ctx: ActionCtx) {
 	return payload.access_token as string;
 }
 
-async function ensureSpotifyAccessToken(ctx: ActionCtx) {
+async function ensureSpotifyAccessToken(
+	ctx: ActionCtx,
+	roomId: Id<'rooms'>,
+	credentials: ProviderCredentials
+) {
 	const cachedToken = await ctx.runQuery(internal.catalogStore.getTokenRecord, {
+		roomId,
 		provider: 'spotify'
 	});
 
@@ -289,14 +360,9 @@ async function ensureSpotifyAccessToken(ctx: ActionCtx) {
 		return cachedToken.accessToken;
 	}
 
-	const clientId = process.env.SPOTIFY_CLIENT_ID;
-	const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-
-	if (!clientId || !clientSecret) {
-		throw new Error('Spotify credentials are not configured in Convex.');
-	}
-
-	const basicToken = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+	const basicToken = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString(
+		'base64'
+	);
 	const body = new URLSearchParams({
 		grant_type: 'client_credentials'
 	});
@@ -321,6 +387,7 @@ async function ensureSpotifyAccessToken(ctx: ActionCtx) {
 	const expiresAt = Date.now() + Number(payload.expires_in ?? 3600) * 1000;
 
 	await ctx.runMutation(internal.catalogStore.storeToken, {
+		roomId,
 		provider: 'spotify',
 		accessToken: payload.access_token,
 		refreshToken: null,
@@ -332,10 +399,13 @@ async function ensureSpotifyAccessToken(ctx: ActionCtx) {
 
 async function searchSoundCloud(
 	ctx: ActionCtx,
+	roomId: Id<'rooms'>,
 	normalizedQuery: string,
-	rawQuery: string
+	rawQuery: string,
+	credentials: ProviderCredentials
 ): Promise<SearchTrack[]> {
 	const cachedSearch = await ctx.runQuery(internal.catalogStore.getCachedSearch, {
+		roomId,
 		provider: 'soundcloud',
 		normalizedQuery
 	});
@@ -344,7 +414,7 @@ async function searchSoundCloud(
 		return cachedSearch.results;
 	}
 
-	const accessToken = await ensureSoundCloudAccessToken(ctx);
+	const accessToken = await ensureSoundCloudAccessToken(ctx, roomId, credentials);
 	const params = new URLSearchParams({
 		q: rawQuery.trim(),
 		limit: '8',
@@ -375,6 +445,7 @@ async function searchSoundCloud(
 		.slice(0, 8);
 
 	await ctx.runMutation(internal.catalogStore.storeSearchCache, {
+		roomId,
 		provider: 'soundcloud',
 		normalizedQuery,
 		results
@@ -385,10 +456,13 @@ async function searchSoundCloud(
 
 async function searchSpotify(
 	ctx: ActionCtx,
+	roomId: Id<'rooms'>,
 	normalizedQuery: string,
-	rawQuery: string
+	rawQuery: string,
+	credentials: ProviderCredentials
 ): Promise<SearchTrack[]> {
 	const cachedSearch = await ctx.runQuery(internal.catalogStore.getCachedSearch, {
+		roomId,
 		provider: 'spotify',
 		normalizedQuery
 	});
@@ -397,7 +471,7 @@ async function searchSpotify(
 		return cachedSearch.results;
 	}
 
-	const accessToken = await ensureSpotifyAccessToken(ctx);
+	const accessToken = await ensureSpotifyAccessToken(ctx, roomId, credentials);
 	const params = new URLSearchParams({
 		q: rawQuery.trim(),
 		type: 'track',
@@ -426,6 +500,7 @@ async function searchSpotify(
 		.slice(0, 8);
 
 	await ctx.runMutation(internal.catalogStore.storeSearchCache, {
+		roomId,
 		provider: 'spotify',
 		normalizedQuery,
 		results
@@ -460,18 +535,42 @@ export const searchTracks = action({
 
 		const roomState = (await ctx.runQuery(internal.catalogStore.getRoomTrackStates, {
 			roomSlug: args.roomSlug
-		})) as {
-			activeTrackKeys: string[];
-			playedTrackKeys: string[];
-		};
-		const [soundCloudResults, spotifyResults] = await Promise.all([
-			searchSoundCloud(ctx, normalizedQuery, args.query),
-			searchSpotify(ctx, normalizedQuery, args.query)
-		]);
+		})) as RoomCatalogState;
+		const searchJobs: Array<Promise<SearchTrack[]>> = [];
+
+		if (roomState.enabledProviders.includes('soundcloud')) {
+			searchJobs.push(
+				searchSoundCloud(
+					ctx,
+					roomState.roomId,
+					normalizedQuery,
+					args.query,
+					getProviderCredentials(roomState, 'soundcloud')
+				)
+			);
+		}
+
+		if (roomState.enabledProviders.includes('spotify')) {
+			searchJobs.push(
+				searchSpotify(
+					ctx,
+					roomState.roomId,
+					normalizedQuery,
+					args.query,
+					getProviderCredentials(roomState, 'spotify')
+				)
+			);
+		}
+
+		if (searchJobs.length === 0) {
+			throw new Error('No music providers are enabled for this room.');
+		}
+
+		const resultsByProvider = await Promise.all(searchJobs);
 
 		const activeTrackKeys = new Set(roomState.activeTrackKeys);
 		const playedTrackKeys = new Set(roomState.playedTrackKeys);
-		const combinedResults = [...soundCloudResults, ...spotifyResults];
+		const combinedResults = resultsByProvider.flat();
 		const queryTokens = normalizedQuery.split(' ').filter(Boolean);
 
 		return combinedResults

@@ -14,6 +14,12 @@ export const getRoomTrackStates = internalQuery({
 	},
 	handler: async (ctx, args) => {
 		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+		const enabledProviders =
+			room.enabledProviders && room.enabledProviders.length > 0
+				? (['soundcloud', 'spotify'] as const).filter((provider) =>
+						room.enabledProviders?.includes(provider)
+					)
+				: ['soundcloud', 'spotify'];
 		const requests = await ctx.db
 			.query('requests')
 			.withIndex('by_roomId_status', (query) => query.eq('roomId', room._id).eq('status', 'active'))
@@ -24,6 +30,10 @@ export const getRoomTrackStates = internalQuery({
 			.collect();
 
 		return {
+			roomId: room._id,
+			enabledProviders,
+			soundcloudCredentials: room.soundcloudCredentials ?? null,
+			spotifyCredentials: room.spotifyCredentials ?? null,
 			activeTrackKeys: requests.map((request) => request.sourceTrackKey),
 			playedTrackKeys: played.map((request) => request.sourceTrackKey)
 		};
@@ -32,14 +42,18 @@ export const getRoomTrackStates = internalQuery({
 
 export const getCachedSearch = internalQuery({
 	args: {
+		roomId: v.id('rooms'),
 		provider: providerValidator,
 		normalizedQuery: v.string()
 	},
 	handler: async (ctx, args) => {
 		const cached = await ctx.db
 			.query('providerSearchCache')
-			.withIndex('by_provider_normalizedQuery', (query) =>
-				query.eq('provider', args.provider).eq('normalizedQuery', args.normalizedQuery)
+			.withIndex('by_roomId_provider_normalizedQuery', (query) =>
+				query
+					.eq('roomId', args.roomId)
+					.eq('provider', args.provider)
+					.eq('normalizedQuery', args.normalizedQuery)
 			)
 			.unique();
 
@@ -53,6 +67,7 @@ export const getCachedSearch = internalQuery({
 
 export const storeSearchCache = internalMutation({
 	args: {
+		roomId: v.id('rooms'),
 		provider: providerValidator,
 		normalizedQuery: v.string(),
 		results: v.array(cachedSearchResultValidator)
@@ -60,8 +75,11 @@ export const storeSearchCache = internalMutation({
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query('providerSearchCache')
-			.withIndex('by_provider_normalizedQuery', (query) =>
-				query.eq('provider', args.provider).eq('normalizedQuery', args.normalizedQuery)
+			.withIndex('by_roomId_provider_normalizedQuery', (query) =>
+				query
+					.eq('roomId', args.roomId)
+					.eq('provider', args.provider)
+					.eq('normalizedQuery', args.normalizedQuery)
 			)
 			.unique();
 		const updatedAt = Date.now();
@@ -76,6 +94,7 @@ export const storeSearchCache = internalMutation({
 		}
 
 		await ctx.db.insert('providerSearchCache', {
+			roomId: args.roomId,
 			provider: args.provider,
 			normalizedQuery: args.normalizedQuery,
 			results: args.results,
@@ -87,13 +106,14 @@ export const storeSearchCache = internalMutation({
 
 export const getTokenRecord = internalQuery({
 	args: {
+		roomId: v.id('rooms'),
 		provider: providerValidator
 	},
 	handler: async (ctx, args) => {
 		return ctx.db
 			.query('providerTokens')
-			.withIndex('by_provider_key', (query) =>
-				query.eq('provider', args.provider).eq('key', 'default')
+			.withIndex('by_roomId_provider', (query) =>
+				query.eq('roomId', args.roomId).eq('provider', args.provider)
 			)
 			.unique();
 	}
@@ -101,6 +121,7 @@ export const getTokenRecord = internalQuery({
 
 export const storeToken = internalMutation({
 	args: {
+		roomId: v.id('rooms'),
 		provider: providerValidator,
 		accessToken: v.string(),
 		refreshToken: v.optional(nullableStringValidator),
@@ -109,8 +130,8 @@ export const storeToken = internalMutation({
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query('providerTokens')
-			.withIndex('by_provider_key', (query) =>
-				query.eq('provider', args.provider).eq('key', 'default')
+			.withIndex('by_roomId_provider', (query) =>
+				query.eq('roomId', args.roomId).eq('provider', args.provider)
 			)
 			.unique();
 
@@ -125,8 +146,8 @@ export const storeToken = internalMutation({
 		}
 
 		await ctx.db.insert('providerTokens', {
+			roomId: args.roomId,
 			provider: args.provider,
-			key: 'default',
 			accessToken: args.accessToken,
 			refreshToken: args.refreshToken,
 			expiresAt: args.expiresAt,

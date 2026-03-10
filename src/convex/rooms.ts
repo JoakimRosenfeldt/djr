@@ -4,7 +4,11 @@ import { mutation, query } from './_generated/server';
 import { ADMIN_LINK_TOKEN_TTL_MS } from './lib/constants';
 import { getRoomBySlug, requireAdminSession, requireRoomBySlug } from './lib/auth';
 import { createPin, createToken, hashString, slugify, trimOrigin } from './lib/helpers';
-import { roomColorValidator } from './lib/validators';
+import {
+	providerCredentialsValidator,
+	providerValidator,
+	roomColorValidator
+} from './lib/validators';
 import {
 	getViewerVotes,
 	listRequestsByStatus,
@@ -13,14 +17,65 @@ import {
 	toPublicRequest
 } from './lib/requests';
 
+const DEFAULT_ENABLED_PROVIDERS = ['soundcloud', 'spotify'] as const;
+
+function normalizeProviderCredentials(
+	credentials?: { clientId: string; clientSecret: string } | null
+) {
+	const clientId = credentials?.clientId?.trim();
+	const clientSecret = credentials?.clientSecret?.trim();
+
+	if (!clientId || !clientSecret) {
+		return null;
+	}
+
+	return {
+		clientId,
+		clientSecret
+	};
+}
+
+function resolveSelectedProviders(providers: Array<'soundcloud' | 'spotify'>) {
+	return DEFAULT_ENABLED_PROVIDERS.filter((provider) => providers.includes(provider));
+}
+
+function getRoomEnabledProviders(providers?: Array<'soundcloud' | 'spotify'>) {
+	const uniqueProviders = resolveSelectedProviders(providers ?? []);
+
+	if (uniqueProviders.length === 0) {
+		return [...DEFAULT_ENABLED_PROVIDERS];
+	}
+
+	return uniqueProviders;
+}
+
 export const createRoom = mutation({
 	args: {
 		djName: v.string(),
 		eventName: v.string(),
 		color: v.optional(roomColorValidator),
+		enabledProviders: v.array(providerValidator),
+		soundcloudCredentials: v.optional(providerCredentialsValidator),
+		spotifyCredentials: v.optional(providerCredentialsValidator),
 		origin: v.string()
 	},
 	handler: async (ctx, args) => {
+		const enabledProviders = resolveSelectedProviders(args.enabledProviders);
+		const soundcloudCredentials = normalizeProviderCredentials(args.soundcloudCredentials);
+		const spotifyCredentials = normalizeProviderCredentials(args.spotifyCredentials);
+
+		if (enabledProviders.length === 0) {
+			throw new Error('Choose at least one music provider.');
+		}
+
+		if (enabledProviders.includes('soundcloud') && !soundcloudCredentials) {
+			throw new Error('Add a SoundCloud client ID and secret.');
+		}
+
+		if (enabledProviders.includes('spotify') && !spotifyCredentials) {
+			throw new Error('Add a Spotify client ID and secret.');
+		}
+
 		const baseSlug = slugify(`${args.djName}-${args.eventName}`) || 'room';
 		let slug = baseSlug;
 
@@ -36,6 +91,9 @@ export const createRoom = mutation({
 			eventName: args.eventName.trim(),
 			djName: args.djName.trim(),
 			color: args.color ?? DEFAULT_ROOM_COLOR,
+			enabledProviders,
+			soundcloudCredentials: soundcloudCredentials ?? undefined,
+			spotifyCredentials: spotifyCredentials ?? undefined,
 			status: 'active',
 			createdAt,
 			pinHash
@@ -81,6 +139,7 @@ export const getPublicRoom = query({
 				eventName: room.eventName,
 				djName: room.djName,
 				color: room.color ?? DEFAULT_ROOM_COLOR,
+				enabledProviders: getRoomEnabledProviders(room.enabledProviders),
 				status: room.status
 			},
 			activeRequests: activeRequests.map((request) =>
@@ -114,6 +173,7 @@ export const getAdminRoom = query({
 				eventName: room.eventName,
 				djName: room.djName,
 				color: room.color ?? DEFAULT_ROOM_COLOR,
+				enabledProviders: getRoomEnabledProviders(room.enabledProviders),
 				status: room.status
 			},
 			activeRequests: activeRequests.map(toAdminRequest),
