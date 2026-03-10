@@ -93,8 +93,8 @@
 	}
 
 	.field:focus {
-		border-color: rgba(255, 122, 69, 0.7);
-		box-shadow: 0 0 0 4px rgba(255, 122, 69, 0.12);
+		border-color: color-mix(in srgb, var(--color-accent) 72%, white 10%);
+		box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 16%, transparent);
 	}
 
 	.btn-primary,
@@ -104,13 +104,25 @@
 	}
 
 	.btn-primary {
-		background: linear-gradient(135deg, var(--color-accent), #ff9b71);
+		background: linear-gradient(
+			135deg,
+			var(--color-accent),
+			color-mix(in srgb, var(--color-accent) 72%, white 28%)
+		);
 		color: #1a120e;
-		box-shadow: 0 12px 30px rgba(255, 122, 69, 0.28);
+		box-shadow: 0 12px 30px color-mix(in srgb, var(--color-accent) 28%, transparent);
 	}
 
 	.btn-primary:hover {
 		transform: translateY(-1px);
+	}
+
+	.guest-primary-button {
+		box-shadow: 0 6px 16px color-mix(in srgb, var(--color-accent) 16%, transparent);
+	}
+
+	.guest-primary-button:hover {
+		box-shadow: 0 8px 18px color-mix(in srgb, var(--color-accent) 18%, transparent);
 	}
 
 	.btn-primary:disabled {
@@ -142,8 +154,8 @@
 	}
 
 	.vote-button-active {
-		border-color: rgba(255, 122, 69, 0.5);
-		background: rgba(255, 122, 69, 0.16);
+		border-color: color-mix(in srgb, var(--color-accent) 50%, white 8%);
+		background: color-mix(in srgb, var(--color-accent) 16%, transparent);
 		color: var(--color-paper);
 	}
 
@@ -169,7 +181,7 @@
 		background: color-mix(in srgb, var(--color-accent) 20%, transparent);
 		box-shadow:
 			0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent),
-			0 16px 40px rgba(255, 122, 69, 0.12);
+			0 16px 40px color-mix(in srgb, var(--color-accent) 12%, transparent);
 	}
 
 	.color-swatch {

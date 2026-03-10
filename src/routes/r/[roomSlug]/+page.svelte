@@ -424,13 +424,13 @@
 													<div
 														class="hidden sm:mt-2 sm:grid sm:w-full sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-1.5"
 													>
-														<button
-															class={result.alreadyPlayed
-																? 'btn-secondary min-w-0 opacity-60'
-																: 'btn-primary w-full min-w-0 justify-center'}
-															type="button"
-															disabled={result.alreadyPlayed}
-															onclick={() => addTrack(result)}
+															<button
+																class={result.alreadyPlayed
+																	? 'btn-secondary min-w-0 opacity-60'
+																	: 'btn-primary guest-primary-button w-full min-w-0 justify-center'}
+																type="button"
+																disabled={result.alreadyPlayed}
+																onclick={() => addTrack(result)}
 														>
 															{#if result.alreadyPlayed}
 																<span class="truncate">Played already</span>
@@ -494,13 +494,13 @@
 											<div
 												class="mt-2 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:hidden"
 											>
-												<button
-													class={result.alreadyPlayed
-														? 'btn-secondary min-w-0 opacity-60'
-														: 'btn-primary w-full min-w-0 justify-center'}
-													type="button"
-													disabled={result.alreadyPlayed}
-													onclick={() => addTrack(result)}
+													<button
+														class={result.alreadyPlayed
+															? 'btn-secondary min-w-0 opacity-60'
+															: 'btn-primary guest-primary-button w-full min-w-0 justify-center'}
+														type="button"
+														disabled={result.alreadyPlayed}
+														onclick={() => addTrack(result)}
 												>
 													{#if result.alreadyPlayed}
 														<span class="truncate">Played already</span>
