@@ -2,17 +2,24 @@
 	import { page } from '$app/state';
 	import { browser } from '$app/environment';
 	import { readSetupPayload } from '$lib/browser/storage';
+	import { DEFAULT_ROOM_COLOR, getRoomThemeStyle } from '$lib/room-colors';
 	import { Copy, Download, KeyRound, Link2, QrCode } from 'lucide-svelte';
 	import QRCode from 'qrcode';
 	import { onMount } from 'svelte';
 
 	const roomSlug = $derived(page.params.roomSlug ?? '');
 
-	let setupPayload = $state<{ guestUrl: string; adminUrl: string; pin: string } | null>(null);
+	let setupPayload = $state<{
+		guestUrl: string;
+		adminUrl: string;
+		pin: string;
+		color?: string;
+	} | null>(null);
 	let qrSvg = $state('');
 	let qrPng = $state('');
 	let copyState = $state('');
 	let loadError = $state('');
+	const roomThemeStyle = $derived(getRoomThemeStyle(setupPayload?.color ?? DEFAULT_ROOM_COLOR));
 
 	async function copyToClipboard(value: string, label: string) {
 		try {
@@ -64,9 +71,7 @@
 	<title>DJR | Room setup</title>
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[linear-gradient(180deg,_#0f0b08_0%,_#0b0908_100%)] px-5 py-6 sm:px-8 lg:px-12"
->
+<div class="min-h-screen px-5 py-6 sm:px-8 lg:px-12" style={roomThemeStyle}>
 	<div class="mx-auto max-w-6xl space-y-6">
 		<header class="flex flex-wrap items-center justify-between gap-4">
 			<div>

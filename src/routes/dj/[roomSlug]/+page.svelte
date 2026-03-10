@@ -6,6 +6,7 @@
 	import type { PageData } from './$types';
 	import { clearAdminSession, readAdminSession, saveAdminSession } from '$lib/browser/storage';
 	import { formatDuration, formatRelativeDate, formatSourceLabel } from '$lib/format';
+	import { DEFAULT_ROOM_COLOR, getRoomThemeStyle } from '$lib/room-colors';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import {
 		CheckCheck,
@@ -42,6 +43,11 @@
 			initialData: data.initialRoom ?? undefined,
 			keepPreviousData: true
 		})
+	);
+	const roomThemeStyle = $derived(
+		getRoomThemeStyle(
+			roomQuery.data?.room.color ?? data.initialRoom?.room.color ?? DEFAULT_ROOM_COLOR
+		)
 	);
 
 	$effect(() => {
@@ -215,9 +221,7 @@
 	<title>DJR | DJ board</title>
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[linear-gradient(180deg,_#120d0b_0%,_#0a0908_100%)] px-4 py-5 sm:px-6 lg:px-8"
->
+<div class="min-h-screen px-4 py-5 sm:px-6 lg:px-8" style={roomThemeStyle}>
 	<div class="mx-auto max-w-6xl space-y-6">
 		<header class="panel flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 			<div>

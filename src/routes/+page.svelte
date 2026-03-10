@@ -2,6 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/convexApi';
 	import { saveSetupPayload } from '$lib/browser/storage';
+	import {
+		DEFAULT_ROOM_COLOR,
+		getRoomColorOption,
+		getRoomThemeStyle,
+		type RoomColorId,
+		ROOM_COLOR_OPTIONS
+	} from '$lib/room-colors';
 	import { useConvexClient } from 'convex-svelte';
 	import { LoaderCircle, RadioTower, ShieldCheck, Sparkles } from 'lucide-svelte';
 
@@ -9,8 +16,10 @@
 
 	let djName = $state('');
 	let eventName = $state('');
+	let roomColor = $state<RoomColorId>(DEFAULT_ROOM_COLOR);
 	let errorMessage = $state('');
 	let isSubmitting = $state(false);
+	const pageThemeStyle = $derived(getRoomThemeStyle(roomColor));
 
 	async function handleCreateRoom(event: SubmitEvent) {
 		event.preventDefault();
@@ -21,13 +30,15 @@
 			const payload = await client.mutation(api.rooms.createRoom, {
 				djName: djName.trim(),
 				eventName: eventName.trim(),
+				color: roomColor,
 				origin: window.location.origin
 			});
 
 			saveSetupPayload(payload.roomSlug, {
 				guestUrl: payload.guestUrl,
 				adminUrl: payload.adminUrl,
-				pin: payload.pin
+				pin: payload.pin,
+				color: roomColor
 			});
 
 			await goto(`/setup/${payload.roomSlug}`);
@@ -43,9 +54,7 @@
 	<title>DJR | Build a live request room</title>
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,120,74,0.28),_transparent_35%),radial-gradient(circle_at_80%_20%,_rgba(255,216,184,0.2),_transparent_25%),linear-gradient(180deg,_#140f0b_0%,_#090909_100%)]"
->
+<div class="min-h-screen" style={pageThemeStyle}>
 	<div
 		class="mx-auto flex min-h-screen max-w-7xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-12"
 	>
@@ -132,6 +141,43 @@
 								required
 							/>
 						</label>
+
+						<fieldset class="field-shell">
+							<legend>Room color</legend>
+							<div class="grid gap-3 sm:grid-cols-2">
+								{#each ROOM_COLOR_OPTIONS as option}
+									<label class:color-option-selected={roomColor === option.id} class="color-option">
+										<input
+											class="sr-only"
+											type="radio"
+											name="roomColor"
+											value={option.id}
+											bind:group={roomColor}
+										/>
+										<span class="color-swatch" style={`background: ${option.swatch}`}></span>
+										<span class="min-w-0">
+											<span class="block text-sm font-semibold text-[var(--color-paper)]">
+												{option.label}
+												{#if option.id === DEFAULT_ROOM_COLOR}
+													<span class="ml-1 text-xs text-[var(--color-accent-soft)]">
+														Default
+													</span>
+												{/if}
+											</span>
+											<span class="mt-1 block text-xs leading-5 text-[var(--color-muted)]">
+												{option.description}
+											</span>
+										</span>
+									</label>
+								{/each}
+							</div>
+							<p class="text-xs leading-5 text-[var(--color-muted)]">
+								Selected theme:
+								<span class="font-semibold text-[var(--color-paper)]">
+									{getRoomColorOption(roomColor).label}
+								</span>
+							</p>
+						</fieldset>
 
 						{#if errorMessage}
 							<p

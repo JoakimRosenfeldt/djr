@@ -79,7 +79,7 @@ export function clearAdminSession(roomSlug: string) {
 
 export function saveSetupPayload(
 	roomSlug: string,
-	payload: { guestUrl: string; adminUrl: string; pin: string }
+	payload: { guestUrl: string; adminUrl: string; pin: string; color: string }
 ) {
 	if (!browser) {
 		return;
@@ -100,7 +100,7 @@ export function readSetupPayload(roomSlug: string) {
 	}
 
 	try {
-		return JSON.parse(raw) as { guestUrl: string; adminUrl: string; pin: string };
+		return JSON.parse(raw) as { guestUrl: string; adminUrl: string; pin: string; color?: string };
 	} catch {
 		return null;
 	}

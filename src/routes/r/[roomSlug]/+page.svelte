@@ -5,6 +5,7 @@
 	import type { PageData } from './$types';
 	import { ensureGuestId } from '$lib/browser/storage';
 	import { formatDuration, formatSourceLabel, truncateText } from '$lib/format';
+	import { DEFAULT_ROOM_COLOR, getRoomThemeStyle } from '$lib/room-colors';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import {
 		ArrowBigDownDash,
@@ -85,6 +86,11 @@
 			initialData: data.initialRoom ?? undefined,
 			keepPreviousData: true
 		})
+	);
+	const roomThemeStyle = $derived(
+		getRoomThemeStyle(
+			roomQuery.data?.room.color ?? data.initialRoom?.room.color ?? DEFAULT_ROOM_COLOR
+		)
 	);
 
 	$effect(() => {
@@ -240,9 +246,7 @@
 	<title>DJR | {data.initialRoom?.room.eventName ?? roomSlug}</title>
 </svelte:head>
 
-<div
-	class="min-h-screen bg-[linear-gradient(180deg,_#100d0a_0%,_#0a0908_100%)] px-4 py-5 sm:px-6 lg:px-8"
->
+<div class="min-h-screen px-4 py-5 sm:px-6 lg:px-8" style={roomThemeStyle}>
 	<div class="mx-auto max-w-6xl space-y-6">
 		{#if data.initialError && !roomQuery.data}
 			<section class="panel text-[var(--color-paper)]">{data.initialError}</section>
