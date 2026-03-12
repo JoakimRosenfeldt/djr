@@ -294,8 +294,8 @@
 						{roomQuery.data?.room.eventName ?? 'This room'} has ended
 					</h1>
 					<p class="text-[var(--color-muted)]">
-						The DJ has closed this request room, so new searches, requests, and votes are no
-						longer available.
+						The DJ has closed this request room, so new searches, requests, and votes are no longer
+						available.
 					</p>
 				</div>
 
@@ -326,21 +326,20 @@
 							</div>
 						</label>
 						<p class="text-sm text-[var(--color-muted)]">
-							New requests start with your upvote. Tracks from both providers can be requested, and
-							played tracks stay locked.
+							Search by track or artist. When you request one, it starts with your upvote.
 						</p>
 					</div>
 
 					{#if searchError}
 						<p
-							class="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+							class="rounded-[1.35rem] border border-red-300/18 bg-red-400/8 px-4 py-3 text-sm text-red-100/92"
 						>
 							{searchError}
 						</p>
 					{/if}
 					{#if actionError}
 						<p
-							class="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+							class="rounded-[1.35rem] border border-red-300/18 bg-red-400/8 px-4 py-3 text-sm text-red-100/92"
 						>
 							{actionError}
 						</p>
@@ -394,167 +393,43 @@
 													<p class="truncate text-sm leading-tight text-[var(--color-muted)]">
 														{result.artistName}
 													</p>
-												</div>
-												<div class="mt-2 flex flex-wrap items-center gap-1.5">
-													<span class="pill px-3 py-1 text-[11px]">
-														{formatDuration(result.durationMs)}
-													</span>
-													<span class="pill px-3 py-1 text-[10px] tracking-[0.18em] uppercase">
-														{formatSourceLabel(result.source)}
-													</span>
-													{#if result.alreadyPlayed}
-														<span
-															class="pill border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] tracking-[0.18em] text-amber-100 uppercase"
-														>
-															Played
-														</span>
-													{:else if result.alreadyQueued}
-														<span
-															class="pill border-white/15 bg-white/8 px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--color-paper)] uppercase"
-														>
-															In queue
-														</span>
-													{/if}
-												</div>
-												{#if activeRequest}
-													<div
-														class="hidden sm:mt-2 sm:grid sm:w-full sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-1.5"
+													<p
+														class="mt-1 text-xs tracking-[0.18em] text-[var(--color-accent-soft)] uppercase"
 													>
+														{formatSourceLabel(result.source)} · {formatDuration(result.durationMs)}
+													</p>
+												</div>
+												<div class="mt-3 flex flex-wrap items-center gap-2">
+													{#if activeRequest}
+														<p class="text-sm text-[var(--color-muted)]">
+															Already in queue. Vote on it in the queue list.
+														</p>
 														<button
-															class={activeRequest.viewerVote === 1
-																? 'vote-button vote-button-active min-w-0 justify-center'
-																: 'vote-button min-w-0 justify-center'}
-															type="button"
-															onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, 1)}
-														>
-															<ArrowBigUpDash size={18} />
-															<span class="truncate">Upvote</span>
-														</button>
-														<button
-															class={activeRequest.viewerVote === -1
-																? 'vote-button vote-button-active min-w-0 justify-center'
-																: 'vote-button min-w-0 justify-center'}
-															type="button"
-															onclick={() =>
-																setVote(activeRequest.id, activeRequest.viewerVote, -1)}
-														>
-															<ArrowBigDownDash size={18} />
-															<span class="truncate">Downvote</span>
-														</button>
-														<button
-															class="btn-secondary w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
+															class="btn-secondary px-4 py-2"
 															type="button"
 															onclick={() => jumpToRequest(activeRequest.id)}
 														>
-															<span class="truncate">Show</span>
+															View in queue
 														</button>
-														<a
-															class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
-															href={result.permalinkUrl}
-															target="_blank"
-															rel="noreferrer"
-														>
-															<span class="truncate">Open</span>
-														</a>
-													</div>
-												{:else}
-													<div
-														class="hidden sm:mt-2 sm:grid sm:w-full sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-1.5"
-													>
-															<button
-																class={result.alreadyPlayed
-																	? 'btn-secondary min-w-0 opacity-60'
-																	: 'btn-primary guest-primary-button w-full min-w-0 justify-center'}
-																type="button"
-																disabled={result.alreadyPlayed}
-																onclick={() => addTrack(result)}
+													{:else}
+														<button
+															class={result.alreadyPlayed
+																? 'btn-secondary px-4 py-2 opacity-60'
+																: 'btn-primary guest-primary-button px-4 py-2'}
+															type="button"
+															disabled={result.alreadyPlayed}
+															onclick={() => addTrack(result)}
 														>
 															{#if result.alreadyPlayed}
-																<span class="truncate">Played already</span>
+																Played already
 															{:else}
-																<span class="truncate">Request track</span>
+																Request track
 															{/if}
 														</button>
-														<a
-															class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
-															href={result.permalinkUrl}
-															target="_blank"
-															rel="noreferrer"
-														>
-															<span class="truncate">Open</span>
-														</a>
-													</div>
-												{/if}
+													{/if}
+												</div>
 											</div>
 										</div>
-										{#if activeRequest}
-											<div
-												class="mt-2 grid w-full min-w-0 grid-cols-2 items-center gap-1.5 sm:hidden"
-											>
-												<button
-													class={activeRequest.viewerVote === 1
-														? 'vote-button vote-button-active min-w-0 justify-center'
-														: 'vote-button min-w-0 justify-center'}
-													type="button"
-													onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, 1)}
-												>
-													<ArrowBigUpDash size={18} />
-													<span class="truncate">Upvote</span>
-												</button>
-												<button
-													class={activeRequest.viewerVote === -1
-														? 'vote-button vote-button-active min-w-0 justify-center'
-														: 'vote-button min-w-0 justify-center'}
-													type="button"
-													onclick={() => setVote(activeRequest.id, activeRequest.viewerVote, -1)}
-												>
-													<ArrowBigDownDash size={18} />
-													<span class="truncate">Downvote</span>
-												</button>
-												<button
-													class="btn-secondary w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
-													type="button"
-													onclick={() => jumpToRequest(activeRequest.id)}
-												>
-													<span class="truncate">Show</span>
-												</button>
-												<a
-													class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
-													href={result.permalinkUrl}
-													target="_blank"
-													rel="noreferrer"
-												>
-													<span class="truncate">Open</span>
-												</a>
-											</div>
-										{:else}
-											<div
-												class="mt-2 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 sm:hidden"
-											>
-													<button
-														class={result.alreadyPlayed
-															? 'btn-secondary min-w-0 opacity-60'
-															: 'btn-primary guest-primary-button w-full min-w-0 justify-center'}
-														type="button"
-														disabled={result.alreadyPlayed}
-														onclick={() => addTrack(result)}
-												>
-													{#if result.alreadyPlayed}
-														<span class="truncate">Played already</span>
-													{:else}
-														<span class="truncate">Request track</span>
-													{/if}
-												</button>
-												<a
-													class="btn-ghost w-full min-w-0 justify-center px-4 py-2 whitespace-nowrap"
-													href={result.permalinkUrl}
-													target="_blank"
-													rel="noreferrer"
-												>
-													<span class="truncate">Open</span>
-												</a>
-											</div>
-										{/if}
 									</article>
 								{/each}
 							</div>
@@ -643,7 +518,7 @@
 							<div
 								class="rounded-[1.75rem] border border-dashed border-white/10 px-5 py-8 text-center text-sm text-[var(--color-muted)]"
 							>
-								No requests yet. Search for the first track.
+								No requests yet. Search above to add the first track and start the queue.
 							</div>
 						{/if}
 					</section>
@@ -680,7 +555,7 @@
 							</div>
 						{:else}
 							<p class="text-sm text-[var(--color-muted)]">
-								Nothing has been marked as played yet.
+								Nothing played yet. Once the DJ marks a track as played, it will stay listed here.
 							</p>
 						{/if}
 					</section>
