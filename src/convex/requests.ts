@@ -26,6 +26,11 @@ export const addOrVote = mutation({
 	},
 	handler: async (ctx, args) => {
 		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+
+		if (room.status === 'closed') {
+			throw new Error('This room has been closed.');
+		}
+
 		const existingRequest = await ctx.db
 			.query('requests')
 			.withIndex('by_roomId_sourceTrackKey', (query) =>

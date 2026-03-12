@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { internalMutation, internalQuery } from './_generated/server';
 import { requireRoomBySlug } from './lib/auth';
-import { SOUNDCLOUD_SEARCH_CACHE_TTL_MS } from './lib/constants';
+import { PROVIDER_SEARCH_CACHE_TTL_MS } from './lib/constants';
 import {
 	cachedSearchResultValidator,
 	nullableStringValidator,
@@ -14,6 +14,11 @@ export const getRoomTrackStates = internalQuery({
 	},
 	handler: async (ctx, args) => {
 		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+
+		if (room.status === 'closed') {
+			throw new Error('This room has been closed.');
+		}
+
 		const enabledProviders =
 			room.enabledProviders && room.enabledProviders.length > 0
 				? (['soundcloud', 'spotify'] as const).filter((provider) =>
@@ -65,6 +70,42 @@ export const getCachedSearch = internalQuery({
 	}
 });
 
+export const cleanupExpiredSearchCaches = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		const expiredEntries = await ctx.db
+			.query('providerSearchCache')
+			.withIndex('by_expiresAt', (query) => query.lte('expiresAt', Date.now()))
+			.collect();
+
+		for (const entry of expiredEntries) {
+			await ctx.db.delete(entry._id);
+		}
+
+		return {
+			deletedCount: expiredEntries.length
+		};
+	}
+});
+
+export const cleanupExpiredProviderTokens = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		const expiredTokens = await ctx.db
+			.query('providerTokens')
+			.withIndex('by_expiresAt', (query) => query.lte('expiresAt', Date.now()))
+			.collect();
+
+		for (const token of expiredTokens) {
+			await ctx.db.delete(token._id);
+		}
+
+		return {
+			deletedCount: expiredTokens.length
+		};
+	}
+});
+
 export const storeSearchCache = internalMutation({
 	args: {
 		roomId: v.id('rooms'),
@@ -82,13 +123,17 @@ export const storeSearchCache = internalMutation({
 					.eq('normalizedQuery', args.normalizedQuery)
 			)
 			.unique();
-		const updatedAt = Date.now();
+		const now = Date.now();
 
 		if (existing) {
+			const createdAt =
+				existing.expiresAt <= now ? now : (existing.createdAt ?? existing.updatedAt ?? now);
+
 			await ctx.db.patch(existing._id, {
 				results: args.results,
-				expiresAt: updatedAt + SOUNDCLOUD_SEARCH_CACHE_TTL_MS,
-				updatedAt
+				createdAt,
+				expiresAt: createdAt + PROVIDER_SEARCH_CACHE_TTL_MS,
+				updatedAt: now
 			});
 			return;
 		}
@@ -98,8 +143,9 @@ export const storeSearchCache = internalMutation({
 			provider: args.provider,
 			normalizedQuery: args.normalizedQuery,
 			results: args.results,
-			expiresAt: updatedAt + SOUNDCLOUD_SEARCH_CACHE_TTL_MS,
-			updatedAt
+			createdAt: now,
+			expiresAt: now + PROVIDER_SEARCH_CACHE_TTL_MS,
+			updatedAt: now
 		});
 	}
 });

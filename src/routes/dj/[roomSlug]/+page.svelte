@@ -11,7 +11,6 @@
 	import {
 		CheckCheck,
 		LoaderCircle,
-		LogOut,
 		RotateCcw,
 		ShieldEllipsis,
 		Trash2
@@ -203,17 +202,36 @@
 		}
 	}
 
-	async function logout() {
-		if (adminToken) {
-			try {
-				await client.mutation(api.admin.logout, {
-					adminSessionToken: adminToken
-				});
-			} catch {}
+	async function closeRoom() {
+		if (!adminToken) {
+			return;
 		}
 
-		clearAdminSession(roomSlug);
-		adminToken = null;
+		if (
+			!confirm(
+				'Close this room and send guests out of the queue? This will also end DJ access for this room.'
+			)
+		) {
+			return;
+		}
+
+		actionBusyKey = 'close-room';
+		authError = '';
+
+		try {
+			await client.mutation(api.rooms.closeRoom, {
+				roomSlug,
+				adminSessionToken: adminToken
+			});
+
+			clearAdminSession(roomSlug);
+			adminToken = null;
+			await goto('/', { replaceState: true });
+		} catch (error) {
+			authError = error instanceof Error ? error.message : 'Unable to close this room.';
+		} finally {
+			actionBusyKey = null;
+		}
 	}
 </script>
 
@@ -235,12 +253,6 @@
 						: 'Private access required'}
 				</p>
 			</div>
-			{#if adminToken}
-				<button class="btn-secondary" type="button" onclick={logout}>
-					<LogOut size={16} />
-					Log out
-				</button>
-			{/if}
 		</header>
 
 		{#if !adminToken}
@@ -470,13 +482,26 @@
 				<section class="panel space-y-4 border border-red-400/20 bg-red-950/20">
 					<div class="space-y-1">
 						<p class="eyebrow text-red-200/80">Danger zone</p>
-						<h2 class="text-2xl font-semibold text-[var(--color-paper)]">Reset requests</h2>
+						<h2 class="text-2xl font-semibold text-[var(--color-paper)]">Close or reset room</h2>
 						<p class="text-sm text-[var(--color-muted)]">
-							Remove the full room queue and archive in one action.
+							Close the room for guests or wipe the queue and archive in one action.
 						</p>
 					</div>
 
 					<div class="flex flex-wrap gap-3">
+						<button
+							class="btn-secondary border-red-400/30 bg-red-500/10 text-red-50 hover:bg-red-500/20"
+							type="button"
+							disabled={actionBusyKey !== null}
+							onclick={closeRoom}
+						>
+							{#if actionBusyKey === 'close-room'}
+								<LoaderCircle class="animate-spin" size={16} />
+							{:else}
+								<Trash2 size={16} />
+							{/if}
+							Close room
+						</button>
 						<button
 							class="btn-secondary border-red-400/30 bg-red-500/10 text-red-50 hover:bg-red-500/20"
 							type="button"

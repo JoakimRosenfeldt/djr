@@ -15,6 +15,16 @@ export const setVote = mutation({
 			throw new Error('That request no longer exists.');
 		}
 
+		const room = await ctx.db.get(request.roomId);
+
+		if (!room) {
+			throw new Error('That room no longer exists.');
+		}
+
+		if (room.status === 'closed') {
+			throw new Error('This room has been closed.');
+		}
+
 		if (request.status === 'played') {
 			throw new Error('Played songs can no longer be voted on.');
 		}

@@ -11,6 +11,11 @@ export const exchangeLinkToken = mutation({
 	},
 	handler: async (ctx, args) => {
 		const room = await requireRoomBySlug(ctx.db, args.slug);
+
+		if (room.status === 'closed') {
+			throw new Error('This room has been closed.');
+		}
+
 		const tokenHash = await hashString(args.token);
 		const linkToken = await ctx.db
 			.query('adminLinkTokens')
@@ -59,6 +64,11 @@ export const loginWithPin = mutation({
 	},
 	handler: async (ctx, args) => {
 		const room = await requireRoomBySlug(ctx.db, args.slug);
+
+		if (room.status === 'closed') {
+			throw new Error('This room has been closed.');
+		}
+
 		const pinHash = await hashString(args.pin.trim());
 
 		if (pinHash !== room.pinHash) {

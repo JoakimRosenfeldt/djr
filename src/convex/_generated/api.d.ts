@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogStore from "../catalogStore.js";
+import type * as crons from "../crons.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_constants from "../lib/constants.js";
 import type * as lib_helpers from "../lib/helpers.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   catalog: typeof catalog;
   catalogStore: typeof catalogStore;
+  crons: typeof crons;
   "lib/auth": typeof lib_auth;
   "lib/constants": typeof lib_constants;
   "lib/helpers": typeof lib_helpers;

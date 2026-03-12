@@ -84,14 +84,19 @@ export default defineSchema({
 		refreshToken: v.optional(nullableStringValidator),
 		expiresAt: v.number(),
 		updatedAt: v.number()
-	}).index('by_roomId_provider', ['roomId', 'provider']),
+	})
+		.index('by_roomId_provider', ['roomId', 'provider'])
+		.index('by_expiresAt', ['expiresAt']),
 
 	providerSearchCache: defineTable({
 		roomId: v.optional(v.id('rooms')),
 		provider: providerValidator,
 		normalizedQuery: v.string(),
 		results: v.array(cachedSearchResultValidator),
+		createdAt: v.optional(v.number()),
 		expiresAt: v.number(),
 		updatedAt: v.number()
-	}).index('by_roomId_provider_normalizedQuery', ['roomId', 'provider', 'normalizedQuery'])
+	})
+		.index('by_roomId_provider_normalizedQuery', ['roomId', 'provider', 'normalizedQuery'])
+		.index('by_expiresAt', ['expiresAt'])
 });

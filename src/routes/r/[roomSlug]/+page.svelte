@@ -108,6 +108,7 @@
 			roomQuery.data?.room.color ?? data.initialRoom?.room.color ?? DEFAULT_ROOM_COLOR
 		)
 	);
+	const isRoomClosed = $derived(roomQuery.data?.room.status === 'closed');
 
 	$effect(() => {
 		if (guestId === null && initialGuestId) {
@@ -130,6 +131,13 @@
 
 		if (debounceHandle) {
 			clearTimeout(debounceHandle);
+		}
+
+		if (isRoomClosed) {
+			searchResults = [];
+			searchError = '';
+			isSearching = false;
+			return;
 		}
 
 		if (currentQuery.length < 2) {
@@ -184,6 +192,12 @@
 
 	async function addTrack(track: (typeof searchResults)[number]) {
 		actionError = '';
+
+		if (isRoomClosed) {
+			actionError = 'This room has been closed.';
+			return;
+		}
+
 		const resolvedGuestId = ensureGuestId(guestId ?? undefined);
 
 		if (!resolvedGuestId) {
@@ -237,6 +251,12 @@
 
 	async function setVote(requestId: Id<'requests'>, currentVote: number, nextVote: -1 | 1) {
 		actionError = '';
+
+		if (isRoomClosed) {
+			actionError = 'This room has been closed.';
+			return;
+		}
+
 		const resolvedGuestId = ensureGuestId(guestId ?? undefined);
 
 		if (!resolvedGuestId) {
@@ -266,6 +286,23 @@
 	<div class="mx-auto max-w-6xl space-y-6">
 		{#if data.initialError && !roomQuery.data}
 			<section class="panel text-[var(--color-paper)]">{data.initialError}</section>
+		{:else if isRoomClosed}
+			<section class="panel mx-auto max-w-2xl space-y-4 text-center">
+				<div class="space-y-2">
+					<p class="eyebrow">Room closed</p>
+					<h1 class="font-display text-4xl text-[var(--color-paper)]">
+						{roomQuery.data?.room.eventName ?? 'This room'} has ended
+					</h1>
+					<p class="text-[var(--color-muted)]">
+						The DJ has closed this request room, so new searches, requests, and votes are no
+						longer available.
+					</p>
+				</div>
+
+				<div class="flex justify-center">
+					<a class="btn-primary" href="/">Back to front page</a>
+				</div>
+			</section>
 		{:else}
 			<div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
 				<section class="panel space-y-5">

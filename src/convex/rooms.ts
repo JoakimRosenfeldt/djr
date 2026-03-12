@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { DEFAULT_ROOM_COLOR } from '../lib/room-colors';
-import { mutation, query } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import { mutation, query, type MutationCtx } from './_generated/server';
 import { ADMIN_LINK_TOKEN_TTL_MS } from './lib/constants';
 import { getRoomBySlug, requireAdminSession, requireRoomBySlug } from './lib/auth';
 import { createPin, createToken, hashString, slugify, trimOrigin } from './lib/helpers';
@@ -18,6 +19,49 @@ import {
 } from './lib/requests';
 
 const DEFAULT_ENABLED_PROVIDERS = ['soundcloud', 'spotify'] as const;
+
+async function deleteRequestAndVotes(ctx: MutationCtx, requestId: Id<'requests'>) {
+	const votes = await ctx.db
+		.query('votes')
+		.withIndex('by_requestId_guestId', (query) => query.eq('requestId', requestId))
+		.collect();
+
+	for (const vote of votes) {
+		await ctx.db.delete(vote._id);
+	}
+
+	await ctx.db.delete(requestId);
+}
+
+async function deleteRoomProviderRecords(
+	ctx: MutationCtx,
+	roomId: Id<'rooms'>,
+	providers?: Array<'soundcloud' | 'spotify'>
+) {
+	const enabledProviders = getRoomEnabledProviders(providers);
+
+	for (const provider of enabledProviders) {
+		const tokenRecord = await ctx.db
+			.query('providerTokens')
+			.withIndex('by_roomId_provider', (query) => query.eq('roomId', roomId).eq('provider', provider))
+			.unique();
+
+		if (tokenRecord) {
+			await ctx.db.delete(tokenRecord._id);
+		}
+
+		const searchCacheEntries = await ctx.db
+			.query('providerSearchCache')
+			.withIndex('by_roomId_provider_normalizedQuery', (query) =>
+				query.eq('roomId', roomId).eq('provider', provider)
+			)
+			.collect();
+
+		for (const entry of searchCacheEntries) {
+			await ctx.db.delete(entry._id);
+		}
+	}
+}
 
 function normalizeProviderCredentials(
 	credentials?: { clientId: string; clientSecret: string } | null
@@ -180,6 +224,67 @@ export const getAdminRoom = query({
 			playedRequests: [...playedRequests]
 				.sort((left, right) => (right.playedAt ?? 0) - (left.playedAt ?? 0))
 				.map(toAdminRequest)
+		};
+	}
+});
+
+export const closeRoom = mutation({
+	args: {
+		roomSlug: v.string(),
+		adminSessionToken: v.string()
+	},
+	handler: async (ctx, args) => {
+		const room = await requireRoomBySlug(ctx.db, args.roomSlug);
+		await requireAdminSession(ctx.db, room._id, args.adminSessionToken);
+
+		const closedAt = room.closedAt ?? Date.now();
+		const [activeRequests, playedRequests, sessions, adminLinkTokens] = await Promise.all([
+			ctx.db
+				.query('requests')
+				.withIndex('by_roomId_status', (query) =>
+					query.eq('roomId', room._id).eq('status', 'active')
+				)
+				.collect(),
+			ctx.db
+				.query('requests')
+				.withIndex('by_roomId_status', (query) =>
+					query.eq('roomId', room._id).eq('status', 'played')
+				)
+				.collect(),
+			ctx.db
+				.query('adminSessions')
+				.withIndex('by_roomId', (query) => query.eq('roomId', room._id))
+				.collect(),
+			ctx.db
+				.query('adminLinkTokens')
+				.withIndex('by_roomId', (query) => query.eq('roomId', room._id))
+				.collect()
+		]);
+
+		if (room.status !== 'closed') {
+			await ctx.db.patch(room._id, {
+				status: 'closed',
+				closedAt
+			});
+		}
+
+		for (const request of [...activeRequests, ...playedRequests]) {
+			await deleteRequestAndVotes(ctx, request._id);
+		}
+
+		await deleteRoomProviderRecords(ctx, room._id, room.enabledProviders);
+
+		for (const session of sessions) {
+			await ctx.db.delete(session._id);
+		}
+
+		for (const token of adminLinkTokens) {
+			await ctx.db.delete(token._id);
+		}
+
+		return {
+			success: true,
+			closedAt
 		};
 	}
 });
