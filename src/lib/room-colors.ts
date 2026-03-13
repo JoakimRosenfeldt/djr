@@ -2,50 +2,50 @@ export const ROOM_COLOR_OPTIONS = [
 	{
 		id: 'purple',
 		label: 'Purple',
-		description: 'Neon plum with a nightclub glow.',
-		swatch: 'linear-gradient(135deg, #8b5cf6 0%, #c084fc 100%)',
-		accent: '#a855f7',
-		accentSoft: '#e9d5ff',
-		glowStrong: 'rgba(168, 85, 247, 0.28)',
-		glowSoft: 'rgba(221, 167, 255, 0.18)',
-		backgroundTop: '#140d1f',
-		backgroundBottom: '#09070f'
+		description: 'Muted plum with a softer late-night tone.',
+		swatch: 'linear-gradient(135deg, #716084 0%, #a795ba 100%)',
+		accent: '#8f7aa6',
+		accentSoft: '#d9cfe5',
+		glowStrong: 'rgba(143, 122, 166, 0.14)',
+		glowSoft: 'rgba(217, 207, 229, 0.08)',
+		backgroundTop: '#16121c',
+		backgroundBottom: '#0e0c12'
 	},
 	{
 		id: 'sunset',
 		label: 'Sunset',
-		description: 'Warm amber and coral tones.',
-		swatch: 'linear-gradient(135deg, #f97316 0%, #fb7185 100%)',
-		accent: '#ff7a45',
-		accentSoft: '#ffc9a4',
-		glowStrong: 'rgba(255, 122, 69, 0.28)',
-		glowSoft: 'rgba(255, 201, 164, 0.18)',
-		backgroundTop: '#140f0b',
-		backgroundBottom: '#090909'
+		description: 'Warm clay and blush, kept understated.',
+		swatch: 'linear-gradient(135deg, #af7055 0%, #c69287 100%)',
+		accent: '#b98368',
+		accentSoft: '#dcc0b2',
+		glowStrong: 'rgba(185, 131, 104, 0.14)',
+		glowSoft: 'rgba(220, 192, 178, 0.08)',
+		backgroundTop: '#171210',
+		backgroundBottom: '#0e0c0b'
 	},
 	{
 		id: 'ocean',
 		label: 'Ocean',
-		description: 'Electric cyan with a cooler wash.',
-		swatch: 'linear-gradient(135deg, #06b6d4 0%, #60a5fa 100%)',
-		accent: '#22d3ee',
-		accentSoft: '#bae6fd',
-		glowStrong: 'rgba(34, 211, 238, 0.24)',
-		glowSoft: 'rgba(125, 211, 252, 0.18)',
-		backgroundTop: '#07151d',
-		backgroundBottom: '#060a10'
+		description: 'Slate blue with a washed coastal accent.',
+		swatch: 'linear-gradient(135deg, #4b7280 0%, #7fa2b1 100%)',
+		accent: '#6f98a7',
+		accentSoft: '#cadce3',
+		glowStrong: 'rgba(111, 152, 167, 0.13)',
+		glowSoft: 'rgba(202, 220, 227, 0.08)',
+		backgroundTop: '#10171b',
+		backgroundBottom: '#0a0f12'
 	},
 	{
 		id: 'lime',
 		label: 'Lime',
-		description: 'Acid green with late-night energy.',
-		swatch: 'linear-gradient(135deg, #84cc16 0%, #2dd4bf 100%)',
-		accent: '#a3e635',
-		accentSoft: '#d9f99d',
-		glowStrong: 'rgba(163, 230, 53, 0.22)',
-		glowSoft: 'rgba(45, 212, 191, 0.16)',
-		backgroundTop: '#10170a',
-		backgroundBottom: '#070b08'
+		description: 'Olive and mineral green with lower contrast.',
+		swatch: 'linear-gradient(135deg, #6f8150 0%, #93a387 100%)',
+		accent: '#8d9d73',
+		accentSoft: '#d3dcc4',
+		glowStrong: 'rgba(141, 157, 115, 0.12)',
+		glowSoft: 'rgba(211, 220, 196, 0.08)',
+		backgroundTop: '#13170f',
+		backgroundBottom: '#0b0d09'
 	}
 ] as const;
 
@@ -63,6 +63,6 @@ export function getRoomThemeStyle(colorId?: string | null) {
 	return [
 		`--color-accent: ${theme.accent}`,
 		`--color-accent-soft: ${theme.accentSoft}`,
-		`background: radial-gradient(circle at top left, ${theme.glowStrong}, transparent 32%), radial-gradient(circle at 80% 18%, ${theme.glowSoft}, transparent 24%), linear-gradient(180deg, ${theme.backgroundTop} 0%, ${theme.backgroundBottom} 100%)`
+		`background: radial-gradient(circle at top left, ${theme.glowStrong}, transparent 36%), radial-gradient(circle at 80% 18%, ${theme.glowSoft}, transparent 28%), linear-gradient(180deg, ${theme.backgroundTop} 0%, ${theme.backgroundBottom} 100%)`
 	].join('; ');
 }

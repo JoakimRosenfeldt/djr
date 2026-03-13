@@ -8,13 +8,7 @@
 	import { formatDuration, formatRelativeDate, formatSourceLabel } from '$lib/format';
 	import { DEFAULT_ROOM_COLOR, getRoomThemeStyle } from '$lib/room-colors';
 	import { useConvexClient, useQuery } from 'convex-svelte';
-	import {
-		CheckCheck,
-		LoaderCircle,
-		RotateCcw,
-		ShieldEllipsis,
-		Trash2
-	} from 'lucide-svelte';
+	import { CheckCheck, LoaderCircle, RotateCcw, ShieldEllipsis, Trash2 } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
 	const initialAdminToken = $derived(data.initialAdminToken);
@@ -260,6 +254,9 @@
 				<div class="space-y-2">
 					<p class="eyebrow">Private access</p>
 					<h2 class="text-2xl font-semibold text-[var(--color-paper)]">Enter your DJ PIN</h2>
+					<p class="text-sm leading-6 text-[var(--color-muted)]">
+						Use the 6-digit PIN from room setup to unlock this board on a new device.
+					</p>
 				</div>
 
 				<form class="space-y-4" onsubmit={loginWithPin}>
@@ -278,7 +275,7 @@
 
 					{#if authError}
 						<p
-							class="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+							class="rounded-[1.35rem] border border-red-300/18 bg-red-400/8 px-4 py-3 text-sm text-red-100/92"
 						>
 							{authError}
 						</p>
@@ -316,7 +313,7 @@
 
 						{#if authError}
 							<p
-								class="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+								class="rounded-[1.35rem] border border-red-300/18 bg-red-400/8 px-4 py-3 text-sm text-red-100/92"
 							>
 								{authError}
 							</p>
@@ -401,7 +398,7 @@
 							<div
 								class="rounded-[1.75rem] border border-dashed border-white/10 px-5 py-8 text-center text-sm text-[var(--color-muted)]"
 							>
-								Nothing in the queue yet.
+								No requests yet. Guests will show up here as soon as they add their first track.
 							</div>
 						{/if}
 					</section>
@@ -413,7 +410,7 @@
 								<h2 class="text-2xl font-semibold text-[var(--color-paper)]">Played tracks</h2>
 							</div>
 							<button
-								class="btn-secondary border-red-400/30 bg-red-500/10 text-red-50 hover:bg-red-500/20"
+								class="btn-secondary border-red-300/18 bg-red-400/8 text-red-50/92 hover:bg-red-400/12"
 								type="button"
 								disabled={actionBusyKey !== null}
 								onclick={clearPlayedSongs}
@@ -434,7 +431,7 @@
 										<div class="flex items-center justify-between gap-4">
 											<div class="flex min-w-0 items-center gap-3">
 												<button
-													class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-400/30 text-red-100 transition hover:bg-red-500/10"
+													class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300/18 text-red-100/92 transition hover:bg-red-400/10"
 													type="button"
 													disabled={actionBusyKey !== null}
 													onclick={() => removePlayedSong(request.id)}
@@ -474,23 +471,25 @@
 								{/each}
 							</div>
 						{:else}
-							<p class="text-sm text-[var(--color-muted)]">Played requests will collect here.</p>
+							<p class="text-sm text-[var(--color-muted)]">
+								Nothing played yet. Mark a request as played to move it into the archive.
+							</p>
 						{/if}
 					</section>
 				</div>
 
-				<section class="panel space-y-4 border border-red-400/20 bg-red-950/20">
+				<section class="panel space-y-4 border border-red-300/16 bg-red-950/12">
 					<div class="space-y-1">
 						<p class="eyebrow text-red-200/80">Danger zone</p>
 						<h2 class="text-2xl font-semibold text-[var(--color-paper)]">Close or reset room</h2>
 						<p class="text-sm text-[var(--color-muted)]">
-							Close the room for guests or wipe the queue and archive in one action.
+							Use these only when the event is over or you need to clear the slate completely.
 						</p>
 					</div>
 
 					<div class="flex flex-wrap gap-3">
 						<button
-							class="btn-secondary border-red-400/30 bg-red-500/10 text-red-50 hover:bg-red-500/20"
+							class="btn-secondary border-red-300/18 bg-red-400/8 text-red-50/92 hover:bg-red-400/12"
 							type="button"
 							disabled={actionBusyKey !== null}
 							onclick={closeRoom}
@@ -503,7 +502,7 @@
 							Close room
 						</button>
 						<button
-							class="btn-secondary border-red-400/30 bg-red-500/10 text-red-50 hover:bg-red-500/20"
+							class="btn-secondary border-red-300/18 bg-red-400/8 text-red-50/92 hover:bg-red-400/12"
 							type="button"
 							disabled={actionBusyKey !== null}
 							onclick={resetRoomRequests}

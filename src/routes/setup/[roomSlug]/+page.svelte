@@ -77,6 +77,10 @@
 			<div>
 				<p class="eyebrow">Room ready</p>
 				<h1 class="font-display text-4xl text-[var(--color-paper)]">Share the floor</h1>
+				<p class="mt-2 max-w-xl text-sm leading-6 text-[var(--color-muted)]">
+					Next: share the guest link or QR code, then keep the DJ board open where you can manage
+					the queue.
+				</p>
 			</div>
 			<a class="btn-secondary" href={`/dj/${roomSlug}`}>
 				<KeyRound size={16} />
@@ -94,7 +98,7 @@
 				<section class="panel space-y-4">
 					<div class="flex items-center gap-3">
 						<div
-							class="rounded-2xl border border-black/10 bg-[var(--color-paper)]/90 p-3 text-[var(--color-ink)]"
+							class="rounded-[1.35rem] border border-black/8 bg-[var(--color-paper)]/88 p-3 text-[var(--color-ink)]"
 						>
 							<QrCode size={22} />
 						</div>
@@ -105,7 +109,7 @@
 					</div>
 
 					<div
-						class="rounded-[2rem] bg-[var(--color-paper)] p-5 text-[var(--color-ink)] shadow-[0_24px_80px_rgba(255,220,190,0.15)]"
+						class="rounded-[1.6rem] bg-[var(--color-paper)]/96 p-5 text-[var(--color-ink)] shadow-[0_14px_40px_rgba(0,0,0,0.16)]"
 					>
 						{#if qrSvg}
 							<div class="mx-auto aspect-square w-full max-w-sm">
@@ -147,7 +151,7 @@
 							<h2 class="text-xl font-semibold text-[var(--color-paper)]">Guest URL</h2>
 						</div>
 						<p
-							class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm break-all text-[var(--color-paper)]"
+							class="rounded-[1.35rem] border border-white/8 bg-white/4 px-4 py-4 text-sm break-all text-[var(--color-paper)]"
 						>
 							{setupPayload.guestUrl}
 						</p>
@@ -160,7 +164,7 @@
 						</div>
 						<div class="grid gap-4 md:grid-cols-[1fr_auto]">
 							<div
-								class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-[var(--color-paper)]"
+								class="rounded-[1.35rem] border border-white/8 bg-white/4 px-4 py-4 text-sm text-[var(--color-paper)]"
 							>
 								<p class="mb-2 text-xs tracking-[0.2em] text-[var(--color-accent-soft)] uppercase">
 									Private admin link
@@ -168,7 +172,7 @@
 								<p class="break-all">{setupPayload.adminUrl}</p>
 							</div>
 							<div
-								class="rounded-2xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 px-5 py-4 text-center text-[var(--color-paper)]"
+								class="rounded-[1.35rem] border border-[var(--color-accent)]/16 bg-[var(--color-accent)]/7 px-5 py-4 text-center text-[var(--color-paper)]"
 							>
 								<p class="mb-1 text-xs tracking-[0.2em] text-[var(--color-accent-soft)] uppercase">
 									Fallback PIN
@@ -200,7 +204,12 @@
 		{/if}
 
 		{#if copyState}
-			<p class="text-sm text-[var(--color-accent-soft)]">{copyState}</p>
+			<p class="text-sm text-[var(--color-muted)]">
+				{copyState}
+				{#if copyState !== 'Clipboard unavailable'}
+					. You can paste it anywhere guests will see it.
+				{/if}
+			</p>
 		{/if}
 	</div>
 </div>
